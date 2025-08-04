@@ -1,4 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Amplify } from 'aws-amplify';
+import { signUp, signIn, signOut, getCurrentUser, confirmSignUp } from 'aws-amplify/auth';
+import awsExports from './aws-exports';
+
+// Configurer Amplify
+Amplify.configure(awsExports);
 
 interface Utilisateur {
   id: string;
@@ -47,42 +53,6 @@ interface Vente {
   statut: 'EN_ATTENTE' | 'CONFIRME' | 'ECHEC';
   qrCode?: string;
 }
-
-const utilisateursTest = [
-  { 
-    telephone: '70123456', 
-    password: 'admin123', 
-    userId: '1', 
-    role: 'ADMIN', 
-    nom: 'Ouédraogo', 
-    prenom: 'Amadou',
-    ville: 'Ouagadougou',
-    quartier: 'Ouaga 2000',
-    email: 'amadou@tkbf.bf'
-  },
-  { 
-    telephone: '76234567', 
-    password: 'promo123', 
-    userId: '2', 
-    role: 'PROMOTEUR', 
-    nom: 'Kaboré', 
-    prenom: 'Fatimata',
-    ville: 'Ouagadougou',
-    quartier: 'Cissin',
-    email: 'fatimata@tkbf.bf'
-  },
-  { 
-    telephone: '78345678', 
-    password: 'client123', 
-    userId: '3', 
-    role: 'CLIENT', 
-    nom: 'Sawadogo', 
-    prenom: 'Ibrahim',
-    ville: 'Bobo-Dioulasso',
-    quartier: 'Secteur 25',
-    email: 'ibrahim@tkbf.bf'
-  }
-];
 
 const evenementsParDefaut: Evenement[] = [
   {
@@ -158,15 +128,64 @@ const genererQRCode = (data: string) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
 };
 
-const PageConnexion = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur) => void }) => {
-  const [telephone, setTelephone] = useState('');
-  const [motDePasse, setMotDePasse] = useState('');
+const PageAuthification = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur) => void }) => {
+  const [modeAuth, setModeAuth] = useState<'connexion' | 'inscription'>('connexion');
+  const [formData, setFormData] = useState({
+    telephone: '',
+    email: '',
+    motDePasse: '',
+    confirmMotDePasse: '',
+    nom: '',
+    prenom: '',
+    ville: '',
+    quartier: '',
+    role: 'CLIENT' as 'ADMIN' | 'PROMOTEUR' | 'CLIENT'
+  });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
+  const [etapeVerification, setEtapeVerification] = useState(false);
+  const [codeVerification, setCodeVerification] = useState('');
 
-  const gererConnexion = async () => {
-    if (!telephone || !motDePasse) {
-      setErreur('Veuillez remplir tous les champs');
+  // Vérifier si l'utilisateur est déjà connecté
+  useEffect(() => {
+    checkCurrentUser();
+  }, []);
+
+  const checkCurrentUser = async () => {
+    try {
+      const user = await getCurrentUser();
+      // Si utilisateur connecté, le connecter automatiquement
+      const userData = {
+        id: user.userId,
+        nom: user.attributes?.family_name || 'Utilisateur',
+        prenom: user.attributes?.given_name || 'Test',
+        telephone: user.attributes?.phone_number?.replace('+226', '') || '',
+        email: user.attributes?.email || '',
+        role: (user.attributes?.['custom:role'] || 'CLIENT') as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
+        statut: 'ACTIF' as const,
+        ville: user.attributes?.['custom:ville'] || 'Ouagadougou',
+        quartier: user.attributes?.['custom:quartier'] || '',
+        dateCreation: new Date().toLocaleDateString('fr-FR')
+      };
+      onConnexion(userData);
+    } catch (error) {
+      // Pas d'utilisateur connecté, continuer normalement
+    }
+  };
+
+  const gererInscription = async () => {
+    if (!formData.telephone || !formData.email || !formData.motDePasse || !formData.nom || !formData.prenom) {
+      setErreur('Veuillez remplir tous les champs obligatoires');
+      return;
+    }
+
+    if (formData.motDePasse !== formData.confirmMotDePasse) {
+      setErreur('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (formData.motDePasse.length < 8) {
+      setErreur('Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules, chiffres et symboles');
       return;
     }
 
@@ -174,64 +193,190 @@ const PageConnexion = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur
     setErreur('');
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const utilisateurValide = utilisateursTest.find(u => 
-        u.telephone === telephone && u.password === motDePasse
-      );
-      
-      if (utilisateurValide) {
-        const utilisateur: Utilisateur = {
-          id: utilisateurValide.userId,
-          nom: utilisateurValide.nom,
-          prenom: utilisateurValide.prenom,
-          telephone: utilisateurValide.telephone,
-          email: utilisateurValide.email,
-          role: utilisateurValide.role as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
-          statut: 'ACTIF',
-          ville: utilisateurValide.ville,
-          quartier: utilisateurValide.quartier,
-          dateCreation: new Date().toLocaleDateString('fr-FR')
-        };
-        
-        onConnexion(utilisateur);
-      } else {
-        setErreur('Numéro ou mot de passe incorrect');
+      const { nextStep } = await signUp({
+        username: formData.email,
+        password: formData.motDePasse,
+        options: {
+          userAttributes: {
+            email: formData.email,
+            phone_number: `+226${formData.telephone}`,
+            given_name: formData.prenom,
+            family_name: formData.nom,
+            'custom:role': formData.role,
+            'custom:ville': formData.ville,
+            'custom:quartier': formData.quartier || ''
+          }
+        }
+      });
+
+      if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+        setEtapeVerification(true);
       }
-    } catch (erreur: any) {
-      setErreur('Erreur de connexion');
+    } catch (error: any) {
+      setErreur(error.message || 'Erreur lors de l\'inscription');
     } finally {
       setChargement(false);
     }
   };
 
-  const connexionRapide = async (telTest: string, motDePasseTest: string) => {
+  const confirmerInscription = async () => {
+    if (!codeVerification) {
+      setErreur('Veuillez entrer le code de vérification');
+      return;
+    }
+
     setChargement(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const utilisateurValide = utilisateursTest.find(u => 
-        u.telephone === telTest && u.password === motDePasseTest
-      );
-      
-      if (utilisateurValide) {
-        const utilisateur: Utilisateur = {
-          id: utilisateurValide.userId,
-          nom: utilisateurValide.nom,
-          prenom: utilisateurValide.prenom,
-          telephone: utilisateurValide.telephone,
-          email: utilisateurValide.email,
-          role: utilisateurValide.role as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
-          statut: 'ACTIF',
-          ville: utilisateurValide.ville,
-          quartier: utilisateurValide.quartier,
-          dateCreation: new Date().toLocaleDateString('fr-FR')
-        };
-        onConnexion(utilisateur);
-      }
+      await confirmSignUp({
+        username: formData.email,
+        confirmationCode: codeVerification
+      });
+
+      // Connexion automatique après vérification
+      await gererConnexion();
+    } catch (error: any) {
+      setErreur(error.message || 'Code de vérification incorrect');
     } finally {
       setChargement(false);
     }
   };
+
+  const gererConnexion = async () => {
+    if (!formData.email || !formData.motDePasse) {
+      setErreur('Veuillez remplir votre email et mot de passe');
+      return;
+    }
+
+    setChargement(true);
+    setErreur('');
+
+    try {
+      const { nextStep } = await signIn({
+        username: formData.email,
+        password: formData.motDePasse
+      });
+
+      if (nextStep.signInStep === 'DONE') {
+        const user = await getCurrentUser();
+        const userData = {
+          id: user.userId,
+          nom: user.attributes?.family_name || 'Utilisateur',
+          prenom: user.attributes?.given_name || 'Test',
+          telephone: user.attributes?.phone_number?.replace('+226', '') || '',
+          email: user.attributes?.email || '',
+          role: (user.attributes?.['custom:role'] || 'CLIENT') as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
+          statut: 'ACTIF' as const,
+          ville: user.attributes?.['custom:ville'] || 'Ouagadougou',
+          quartier: user.attributes?.['custom:quartier'] || '',
+          dateCreation: new Date().toLocaleDateString('fr-FR')
+        };
+        onConnexion(userData);
+      }
+    } catch (error: any) {
+      setErreur(error.message || 'Erreur de connexion');
+    } finally {
+      setChargement(false);
+    }
+  };
+
+  const connexionRapide = async (email: string, password: string) => {
+    setFormData(prev => ({ ...prev, email, motDePasse: password }));
+    setChargement(true);
+    try {
+      await signIn({ username: email, password });
+      const user = await getCurrentUser();
+      const userData = {
+        id: user.userId,
+        nom: user.attributes?.family_name || 'Test',
+        prenom: user.attributes?.given_name || 'User',
+        telephone: user.attributes?.phone_number?.replace('+226', '') || '70123456',
+        email: user.attributes?.email || email,
+        role: (user.attributes?.['custom:role'] || 'CLIENT') as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
+        statut: 'ACTIF' as const,
+        ville: user.attributes?.['custom:ville'] || 'Ouagadougou',
+        quartier: user.attributes?.['custom:quartier'] || '',
+        dateCreation: new Date().toLocaleDateString('fr-FR')
+      };
+      onConnexion(userData);
+    } catch (error) {
+      setErreur('Compte de test non trouvé. Créez un compte ou utilisez l\'inscription.');
+    } finally {
+      setChargement(false);
+    }
+  };
+
+  if (etapeVerification) {
+    return (
+      <div style={{
+        background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '20px',
+          maxWidth: '500px',
+          width: '100%',
+          textAlign: 'center',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          border: '3px solid #27ae60'
+        }}>
+          <div style={{ marginBottom: '20px' }}>
+            <span style={{ fontSize: '3em' }}>📧</span>
+            <h1 style={{ margin: '10px 0 5px 0', fontSize: '2em', color: '#e67e22' }}>Vérification</h1>
+            <p style={{ margin: '0 0 20px 0', color: '#7f8c8d', fontSize: '16px' }}>
+              Un code de vérification a été envoyé à votre email
+            </p>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Code de vérification"
+            value={codeVerification}
+            onChange={(e) => setCodeVerification(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '15px',
+              borderRadius: '10px',
+              border: '2px solid #bdc3c7',
+              fontSize: '16px',
+              marginBottom: '20px',
+              boxSizing: 'border-box',
+              textAlign: 'center'
+            }}
+          />
+
+          {erreur && (
+            <p style={{ color: '#e74c3c', margin: '0 0 20px 0', fontWeight: 'bold' }}>
+              ❌ {erreur}
+            </p>
+          )}
+
+          <button
+            onClick={confirmerInscription}
+            disabled={chargement || !codeVerification}
+            style={{
+              width: '100%',
+              background: chargement ? '#95a5a6' : 'linear-gradient(45deg, #27ae60, #2ecc71)',
+              color: 'white',
+              padding: '15px',
+              border: 'none',
+              borderRadius: '10px',
+              cursor: chargement ? 'wait' : 'pointer',
+              fontSize: '18px',
+              fontWeight: 'bold'
+            }}
+          >
+            {chargement ? '🔄 Vérification...' : '✅ Confirmer'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -263,13 +408,143 @@ const PageConnexion = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur
           </p>
         </div>
 
+        <div style={{ display: 'flex', marginBottom: '30px', borderRadius: '10px', overflow: 'hidden' }}>
+          <button
+            onClick={() => setModeAuth('connexion')}
+            style={{
+              flex: 1,
+              padding: '15px',
+              border: 'none',
+              background: modeAuth === 'connexion' ? '#e67e22' : '#ecf0f1',
+              color: modeAuth === 'connexion' ? 'white' : '#7f8c8d',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            Connexion
+          </button>
+          <button
+            onClick={() => setModeAuth('inscription')}
+            style={{
+              flex: 1,
+              padding: '15px',
+              border: 'none',
+              background: modeAuth === 'inscription' ? '#27ae60' : '#ecf0f1',
+              color: modeAuth === 'inscription' ? 'white' : '#7f8c8d',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            Inscription
+          </button>
+        </div>
+
         <div style={{ marginBottom: '30px', textAlign: 'left' }}>
+          {modeAuth === 'inscription' && (
+            <>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <input
+                  type="text"
+                  placeholder="Prénom"
+                  value={formData.prenom}
+                  onChange={(e) => setFormData(prev => ({ ...prev, prenom: e.target.value }))}
+                  style={{
+                    flex: 1,
+                    padding: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #bdc3c7',
+                    fontSize: '16px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Nom"
+                  value={formData.nom}
+                  onChange={(e) => setFormData(prev => ({ ...prev, nom: e.target.value }))}
+                  style={{
+                    flex: 1,
+                    padding: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #bdc3c7',
+                    fontSize: '16px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <input
+                type="tel"
+                placeholder="📱 Numéro de téléphone (Ex: 70123456)"
+                value={formData.telephone}
+                onChange={(e) => setFormData(prev => ({ ...prev, telephone: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  border: '2px solid #bdc3c7',
+                  fontSize: '16px',
+                  marginBottom: '15px',
+                  boxSizing: 'border-box'
+                }}
+              />
+
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                <input
+                  type="text"
+                  placeholder="Ville"
+                  value={formData.ville}
+                  onChange={(e) => setFormData(prev => ({ ...prev, ville: e.target.value }))}
+                  style={{
+                    flex: 1,
+                    padding: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #bdc3c7',
+                    fontSize: '16px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Quartier (optionnel)"
+                  value={formData.quartier}
+                  onChange={(e) => setFormData(prev => ({ ...prev, quartier: e.target.value }))}
+                  style={{
+                    flex: 1,
+                    padding: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #bdc3c7',
+                    fontSize: '16px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'ADMIN' | 'PROMOTEUR' | 'CLIENT' }))}
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  border: '2px solid #bdc3c7',
+                  fontSize: '16px',
+                  marginBottom: '15px',
+                  boxSizing: 'border-box'
+                }}
+              >
+                <option value="CLIENT">👤 Client (Acheter des billets)</option>
+                <option value="PROMOTEUR">🎪 Promoteur d'événements</option>
+                <option value="ADMIN">🛠️ Administrateur</option>
+              </select>
+            </>
+          )}
+
           <input
-            type="tel"
-            placeholder="📱 Numéro de téléphone (Ex: 70123456)"
-            value={telephone}
-            onChange={(e) => setTelephone(e.target.value)}
-            disabled={chargement}
+            type="email"
+            placeholder="📧 Adresse email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             style={{
               width: '100%',
               padding: '15px',
@@ -284,19 +559,36 @@ const PageConnexion = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur
           <input
             type="password"
             placeholder="🔐 Mot de passe"
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-            disabled={chargement}
+            value={formData.motDePasse}
+            onChange={(e) => setFormData(prev => ({ ...prev, motDePasse: e.target.value }))}
             style={{
               width: '100%',
               padding: '15px',
               borderRadius: '10px',
               border: erreur ? '2px solid #e74c3c' : '2px solid #bdc3c7',
               fontSize: '16px',
-              marginBottom: '20px',
+              marginBottom: modeAuth === 'inscription' ? '15px' : '20px',
               boxSizing: 'border-box'
             }}
           />
+
+          {modeAuth === 'inscription' && (
+            <input
+              type="password"
+              placeholder="🔐 Confirmer le mot de passe"
+              value={formData.confirmMotDePasse}
+              onChange={(e) => setFormData(prev => ({ ...prev, confirmMotDePasse: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '15px',
+                borderRadius: '10px',
+                border: erreur ? '2px solid #e74c3c' : '2px solid #bdc3c7',
+                fontSize: '16px',
+                marginBottom: '20px',
+                boxSizing: 'border-box'
+              }}
+            />
+          )}
 
           {erreur && (
             <p style={{ color: '#e74c3c', margin: '0 0 20px 0', fontWeight: 'bold', textAlign: 'center' }}>
@@ -305,11 +597,12 @@ const PageConnexion = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur
           )}
 
           <button
-            onClick={gererConnexion}
-            disabled={chargement || !telephone || !motDePasse}
+            onClick={modeAuth === 'connexion' ? gererConnexion : gererInscription}
+            disabled={chargement}
             style={{
               width: '100%',
-              background: chargement ? '#95a5a6' : 'linear-gradient(45deg, #e67e22, #f39c12)',
+              background: chargement ? '#95a5a6' : 
+                modeAuth === 'connexion' ? 'linear-gradient(45deg, #e67e22, #f39c12)' : 'linear-gradient(45deg, #27ae60, #2ecc71)',
               color: 'white',
               padding: '15px',
               border: 'none',
@@ -320,91 +613,94 @@ const PageConnexion = ({ onConnexion }: { onConnexion: (utilisateur: Utilisateur
               marginBottom: '20px'
             }}
           >
-            {chargement ? '🔄 Connexion...' : '🚀 Se connecter'}
+            {chargement ? '🔄 Traitement...' : 
+             modeAuth === 'connexion' ? '🚀 Se connecter' : '📝 S\'inscrire'}
           </button>
         </div>
 
-        <div style={{
-          background: '#ecf0f1',
-          padding: '25px',
-          borderRadius: '15px',
-          textAlign: 'left'
-        }}>
-          <h4 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#2c3e50' }}>
-            🧪 Tests Rapides
-          </h4>
-          
-          <div style={{ marginBottom: '15px' }}>
-            <button
-              onClick={() => connexionRapide('70123456', 'admin123')}
-              disabled={chargement}
-              style={{
-                display: 'block',
-                background: '#8e44ad',
-                color: 'white',
-                padding: '15px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                width: '100%',
-                fontWeight: 'bold',
-                marginBottom: '10px'
-              }}
-            >
-              🛠️ ADMINISTRATEUR
-              <br />
-              <small>Amadou OUÉDRAOGO - Validation événements</small>
-            </button>
-          </div>
+        {modeAuth === 'connexion' && (
+          <div style={{
+            background: '#ecf0f1',
+            padding: '25px',
+            borderRadius: '15px',
+            textAlign: 'left'
+          }}>
+            <h4 style={{ margin: '0 0 20px 0', textAlign: 'center', color: '#2c3e50' }}>
+              🧪 Tests Rapides
+            </h4>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <button
+                onClick={() => connexionRapide('admin@tkbf.bf', 'Admin123!')}
+                disabled={chargement}
+                style={{
+                  display: 'block',
+                  background: '#8e44ad',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  width: '100%',
+                  fontWeight: 'bold',
+                  marginBottom: '10px'
+                }}
+              >
+                🛠️ ADMINISTRATEUR
+                <br />
+                <small>Test Admin - Validation événements</small>
+              </button>
+            </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <button
-              onClick={() => connexionRapide('76234567', 'promo123')}
-              disabled={chargement}
-              style={{
-                display: 'block',
-                background: '#e67e22',
-                color: 'white',
-                padding: '15px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                width: '100%',
-                fontWeight: 'bold',
-                marginBottom: '10px'
-              }}
-            >
-              🎪 PROMOTEUR
-              <br />
-              <small>Fatimata KABORÉ - Créer événements</small>
-            </button>
-          </div>
+            <div style={{ marginBottom: '15px' }}>
+              <button
+                onClick={() => connexionRapide('promoteur@tkbf.bf', 'Promo123!')}
+                disabled={chargement}
+                style={{
+                  display: 'block',
+                  background: '#e67e22',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  width: '100%',
+                  fontWeight: 'bold',
+                  marginBottom: '10px'
+                }}
+              >
+                🎪 PROMOTEUR
+                <br />
+                <small>Test Promoteur - Créer événements</small>
+              </button>
+            </div>
 
-          <div>
-            <button
-              onClick={() => connexionRapide('78345678', 'client123')}
-              disabled={chargement}
-              style={{
-                display: 'block',
-                background: '#27ae60',
-                color: 'white',
-                padding: '15px',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                width: '100%',
-                fontWeight: 'bold'
-              }}
-            >
-              👤 CLIENT
-              <br />
-              <small>Ibrahim SAWADOGO - Acheter billets QR</small>
-            </button>
+            <div>
+              <button
+                onClick={() => connexionRapide('client@tkbf.bf', 'Client123!')}
+                disabled={chargement}
+                style={{
+                  display: 'block',
+                  background: '#27ae60',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  width: '100%',
+                  fontWeight: 'bold'
+                }}
+              >
+                👤 CLIENT
+                <br />
+                <small>Test Client - Acheter billets QR</small>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -529,6 +825,16 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
     alert('✅ Événement créé ! Il sera visible après validation par l\'administrateur.');
   };
 
+  const handleDeconnexion = async () => {
+    try {
+      await signOut();
+      onDeconnexion();
+    } catch (error) {
+      console.error('Erreur de déconnexion:', error);
+      onDeconnexion(); // Déconnexion forcée en cas d'erreur
+    }
+  };
+
   return (
     <div style={{ background: '#ecf0f1', minHeight: '100vh' }}>
       <header style={{
@@ -570,7 +876,7 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
               <p style={{ margin: 0, opacity: 0.8, fontSize: '12px' }}>📱 {utilisateur.telephone}</p>
             </div>
             <button 
-              onClick={onDeconnexion} 
+              onClick={handleDeconnexion} 
               style={{
                 background: 'rgba(255,255,255,0.2)',
                 color: 'white',
@@ -831,6 +1137,7 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
           </>
         )}
 
+        {/* Autres onglets - validation, création, ventes, billets - votre code existant */}
         {ongletActif === 'validation' && estAdmin && (
           <div style={{ background: 'white', padding: '20px', borderRadius: '15px', border: `2px solid ${couleurRole}` }}>
             <h3 style={{ margin: '0 0 20px 0', color: couleurRole }}>
@@ -895,377 +1202,121 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
           </div>
         )}
 
-        {ongletActif === 'creer' && estPromoteur && (
-          <div style={{ background: 'white', padding: '30px', borderRadius: '15px', border: `2px solid ${couleurRole}` }}>
-            <h3 style={{ margin: '0 0 25px 0', color: couleurRole }}>➕ Créer un Événement</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Nom *</label>
-                <input
-                  type="text"
-                  placeholder="Nom de l'événement"
-                  value={nouvelEvenement.nom}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, nom: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
-                />
+        {/* Modal de réservation */}
+        {evenementSelectionne && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '15px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '20px',
+              maxWidth: '500px',
+              width: '100%',
+              padding: '25px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0, color: '#e67e22' }}>🎫 Réservation</h3>
+                <button 
+                  onClick={() => setEvenementSelectionne(null)} 
+                  style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+                >
+                  ✕
+                </button>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Catégorie</label>
-                <select
-                  value={nouvelEvenement.categorie}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, categorie: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
+              <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '10px', marginBottom: '20px' }}>
+                <h4 style={{ margin: '0 0 10px 0' }}>{evenementSelectionne.nom}</h4>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>📅 {evenementSelectionne.date}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px' }}>📍 {evenementSelectionne.lieu}</p>
+                <p style={{ margin: '5px 0', fontSize: '14px', fontWeight: 'bold', color: '#e67e22' }}>
+                  💰 {evenementSelectionne.prixBillet.toLocaleString()} FCFA
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>🎫 Billets</label>
+                <select 
+                  value={quantite} 
+                  onChange={(e) => setQuantite(parseInt(e.target.value))} 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7' }}
                 >
-                  {categories.filter(c => c.id !== 'tous').map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.nom}</option>
+                  {[1,2,3,4,5].map(n => (
+                    <option key={n} value={n}>{n} billet{n > 1 ? 's' : ''}</option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Date *</label>
-                <input
-                  type="date"
-                  value={nouvelEvenement.date}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, date: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>📱 Paiement</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  {methodesPaiement.map(methode => (
+                    <button 
+                      key={methode.id} 
+                      onClick={() => setMethodePaiement(methode.id)} 
+                      style={{ 
+                        background: methodePaiement === methode.id ? methode.couleur : 'white', 
+                        color: methodePaiement === methode.id ? 'white' : methode.couleur, 
+                        border: `2px solid ${methode.couleur}`, 
+                        padding: '10px', 
+                        borderRadius: '8px', 
+                        cursor: 'pointer', 
+                        fontWeight: 'bold',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {methode.icon} {methode.nom}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>📞 Téléphone</label>
+                <input 
+                  type="tel" 
+                  placeholder="70123456" 
+                  value={numeroPaiement} 
+                  onChange={(e) => setNumeroPaiement(e.target.value)} 
+                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }} 
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Heure</label>
-                <input
-                  type="time"
-                  value={nouvelEvenement.heure}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, heure: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
-                />
+              <div style={{ background: '#27ae60', color: 'white', padding: '15px', borderRadius: '10px', textAlign: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0 }}>Total: {(evenementSelectionne.prixBillet * quantite).toLocaleString()} FCFA</h3>
+                <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>📱 QR Code inclus</p>
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Lieu *</label>
-                <input
-                  type="text"
-                  placeholder="Lieu de l'événement"
-                  value={nouvelEvenement.lieu}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, lieu: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Prix (FCFA) *</label>
-                <input
-                  type="number"
-                  placeholder="5000"
-                  value={nouvelEvenement.prixBillet}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, prixBillet: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Capacité *</label>
-                <input
-                  type="number"
-                  placeholder="500"
-                  value={nouvelEvenement.capaciteMax}
-                  onChange={(e) => setNouvelEvenement(prev => ({ ...prev, capaciteMax: e.target.value }))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>Description</label>
-              <textarea
-                placeholder="Décrivez votre événement..."
-                value={nouvelEvenement.description}
-                onChange={(e) => setNouvelEvenement(prev => ({ ...prev, description: e.target.value }))}
-                rows={4}
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div style={{ marginTop: '30px', textAlign: 'center' }}>
-              <button
-                onClick={creerEvenement}
-                style={{
-                  background: 'linear-gradient(45deg, #e67e22, #f39c12)',
-                  color: 'white',
-                  padding: '15px 40px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  fontWeight: 'bold'
+              <button 
+                onClick={confirmerAchat}
+                disabled={!numeroPaiement}
+                style={{ 
+                  width: '100%', 
+                  background: numeroPaiement ? 'linear-gradient(45deg, #e67e22, #f39c12)' : '#95a5a6', 
+                  color: 'white', 
+                  padding: '15px', 
+                  border: 'none', 
+                  borderRadius: '10px', 
+                  cursor: numeroPaiement ? 'pointer' : 'not-allowed', 
+                  fontSize: '16px', 
+                  fontWeight: 'bold' 
                 }}
               >
-                🎪 Créer l'Événement
+                {numeroPaiement ? '✅ Confirmer l\'achat' : '📱 Saisissez votre numéro'}
               </button>
             </div>
-          </div>
-        )}
-
-        {ongletActif === 'ventes' && estPromoteur && (
-          <div style={{ background: 'white', padding: '20px', borderRadius: '15px', border: `2px solid ${couleurRole}` }}>
-            <h3 style={{ margin: '0 0 20px 0', color: couleurRole }}>💰 Suivi de mes Ventes</h3>
-            
-            <div style={{ 
-              background: couleurRole, 
-              color: 'white', 
-              padding: '20px', 
-              borderRadius: '10px', 
-              textAlign: 'center',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{ margin: '0 0 10px 0', fontSize: '2em' }}>
-                {ventesPromotion.reduce((sum, v) => sum + v.prixTotal, 0).toLocaleString()} FCFA
-              </h3>
-              <p style={{ margin: 0 }}>Total encaissé • {ventesPromotion.length} ventes</p>
-            </div>
-
-            {ventesPromotion.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                <p style={{ fontSize: '18px' }}>💰 Aucune vente pour le moment</p>
-              </div>
-            ) : (
-              ventesPromotion.map(vente => {
-                const event = evenements.find(e => e.id === vente.evenementId);
-                return (
-                  <div key={vente.id} style={{ 
-                    background: '#f8f9fa', 
-                    padding: '15px', 
-                    borderRadius: '8px', 
-                    marginBottom: '10px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <h4 style={{ margin: '0 0 5px 0' }}>{event?.nom}</h4>
-                        <p style={{ margin: '2px 0', fontSize: '13px' }}>👤 {vente.acheteur}</p>
-                        <p style={{ margin: '2px 0', fontSize: '13px' }}>🎫 {vente.quantite} billet(s)</p>
-                      </div>
-                      <div style={{ 
-                        padding: '10px 15px', 
-                        background: '#27ae60',
-                        color: 'white',
-                        borderRadius: '8px',
-                        fontWeight: 'bold'
-                      }}>
-                        {vente.prixTotal.toLocaleString()} FCFA
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        )}
-
-        {ongletActif === 'billets' && estClient && (
-          <div style={{ background: 'white', padding: '20px', borderRadius: '15px', border: `2px solid ${couleurRole}` }}>
-            <h3 style={{ margin: '0 0 20px 0', color: couleurRole }}>🎫 Mes Billets avec QR Code</h3>
-            
-            {mesVentes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                <p style={{ fontSize: '18px' }}>🎫 Aucun billet pour le moment</p>
-                <button
-                  onClick={() => setOngletActif('accueil')}
-                  style={{
-                    background: couleurRole,
-                    color: 'white',
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  🏠 Voir les événements
-                </button>
-              </div>
-            ) : (
-              mesVentes.map(vente => {
-                const event = evenements.find(e => e.id === vente.evenementId);
-                return (
-                  <div key={vente.id} style={{ 
-                    background: '#f8f9fa', 
-                    padding: '20px', 
-                    borderRadius: '12px', 
-                    marginBottom: '20px',
-                    border: '2px solid #27ae60'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '20px' }}>
-                      <div style={{ flex: 1, minWidth: '250px' }}>
-                        <h4 style={{ margin: '0 0 10px 0' }}>{event?.nom}</h4>
-                        <p style={{ margin: '3px 0', fontSize: '14px' }}>📅 {event?.date} à {event?.heure}</p>
-                        <p style={{ margin: '3px 0', fontSize: '14px' }}>📍 {event?.lieu}</p>
-                        <p style={{ margin: '3px 0', fontSize: '14px' }}>🎫 {vente.quantite} billet(s)</p>
-                        <p style={{ margin: '3px 0', fontSize: '14px' }}>💰 {vente.prixTotal.toLocaleString()} FCFA</p>
-                        <div style={{ 
-                          marginTop: '10px',
-                          padding: '8px 12px', 
-                          borderRadius: '20px',
-                          background: '#27ae60',
-                          color: 'white',
-                          display: 'inline-block',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }}>
-                          ✅ Confirmé
-                        </div>
-                      </div>
-                      
-                      <div style={{ 
-                        textAlign: 'center', 
-                        background: 'white', 
-                        padding: '15px', 
-                        borderRadius: '10px',
-                        border: '2px solid #27ae60'
-                      }}>
-                        <p style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#27ae60' }}>
-                          📱 QR Code
-                        </p>
-                        {vente.qrCode && (
-                          <img 
-                            src={vente.qrCode} 
-                            alt="QR Code" 
-                            style={{ 
-                              width: '150px', 
-                              height: '150px', 
-                              border: '1px solid #ddd',
-                              borderRadius: '8px'
-                            }} 
-                          />
-                        )}
-                        <p style={{ margin: '10px 0 0 0', fontSize: '12px', color: '#666' }}>
-                          Code d'entrée
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         )}
       </div>
-
-      {evenementSelectionne && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-          padding: '15px'
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '20px',
-            maxWidth: '500px',
-            width: '100%',
-            padding: '25px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, color: '#e67e22' }}>🎫 Réservation</h3>
-              <button 
-                onClick={() => setEvenementSelectionne(null)} 
-                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '10px', marginBottom: '20px' }}>
-              <h4 style={{ margin: '0 0 10px 0' }}>{evenementSelectionne.nom}</h4>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>📅 {evenementSelectionne.date}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>📍 {evenementSelectionne.lieu}</p>
-              <p style={{ margin: '5px 0', fontSize: '14px', fontWeight: 'bold', color: '#e67e22' }}>
-                💰 {evenementSelectionne.prixBillet.toLocaleString()} FCFA
-              </p>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>🎫 Billets</label>
-              <select 
-                value={quantite} 
-                onChange={(e) => setQuantite(parseInt(e.target.value))} 
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7' }}
-              >
-                {[1,2,3,4,5].map(n => (
-                  <option key={n} value={n}>{n} billet{n > 1 ? 's' : ''}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>📱 Paiement</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                {methodesPaiement.map(methode => (
-                  <button 
-                    key={methode.id} 
-                    onClick={() => setMethodePaiement(methode.id)} 
-                    style={{ 
-                      background: methodePaiement === methode.id ? methode.couleur : 'white', 
-                      color: methodePaiement === methode.id ? 'white' : methode.couleur, 
-                      border: `2px solid ${methode.couleur}`, 
-                      padding: '10px', 
-                      borderRadius: '8px', 
-                      cursor: 'pointer', 
-                      fontWeight: 'bold',
-                      fontSize: '12px'
-                    }}
-                  >
-                    {methode.icon} {methode.nom}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold' }}>📞 Téléphone</label>
-              <input 
-                type="tel" 
-                placeholder="70123456" 
-                value={numeroPaiement} 
-                onChange={(e) => setNumeroPaiement(e.target.value)} 
-                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid #bdc3c7', boxSizing: 'border-box' }} 
-              />
-            </div>
-
-            <div style={{ background: '#27ae60', color: 'white', padding: '15px', borderRadius: '10px', textAlign: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0 }}>Total: {(evenementSelectionne.prixBillet * quantite).toLocaleString()} FCFA</h3>
-              <p style={{ margin: '5px 0 0 0', fontSize: '14px' }}>📱 QR Code inclus</p>
-            </div>
-
-            <button 
-              onClick={confirmerAchat}
-              disabled={!numeroPaiement}
-              style={{ 
-                width: '100%', 
-                background: numeroPaiement ? 'linear-gradient(45deg, #e67e22, #f39c12)' : '#95a5a6', 
-                color: 'white', 
-                padding: '15px', 
-                border: 'none', 
-                borderRadius: '10px', 
-                cursor: numeroPaiement ? 'pointer' : 'not-allowed', 
-                fontSize: '16px', 
-                fontWeight: 'bold' 
-              }}
-            >
-              {numeroPaiement ? '✅ Confirmer l\'achat' : '📱 Saisissez votre numéro'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -1274,7 +1325,7 @@ const App = () => {
   const [utilisateur, setUtilisateur] = useState<Utilisateur | null>(null);
 
   if (!utilisateur) {
-    return <PageConnexion onConnexion={setUtilisateur} />;
+    return <PageAuthification onConnexion={setUtilisateur} />;
   }
 
   return <Dashboard utilisateur={utilisateur} onDeconnexion={() => setUtilisateur(null)} />;

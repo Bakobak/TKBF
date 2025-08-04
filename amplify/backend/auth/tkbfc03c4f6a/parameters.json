@@ -1,0 +1,16 @@
+{
+  "authSelections": "userPoolOnly",
+  "resourceName": "tkbfc03c4f6a",
+  "serviceType": "imported",
+  "region": "us-east-1",
+  "requiredAttributes": [],
+  "passwordPolicyMinLength": 8,
+  "passwordPolicyCharacters": [
+    "Requires Lowercase",
+    "Requires Uppercase",
+    "Requires Numbers",
+    "Requires Symbols"
+  ],
+  "mfaConfiguration": "OFF",
+  "mfaTypes": []
+}

@@ -1,0 +1,28 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-tkbf-dev-f0fde-authRole",
+      "UnauthRoleArn": "arn:aws:iam::941377125003:role/amplify-tkbf-dev-f0fde-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::941377125003:role/amplify-tkbf-dev-f0fde-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-tkbf-dev-f0fde-deployment",
+      "UnauthRoleName": "amplify-tkbf-dev-f0fde-unauthRole",
+      "StackName": "amplify-tkbf-dev-f0fde",
+      "StackId": "arn:aws:cloudformation:us-east-1:941377125003:stack/amplify-tkbf-dev-f0fde/e3691be0-70ea-11f0-b1a9-0ebd574e6d4f",
+      "AmplifyAppId": "d3otufssnj0dmt"
+    },
+    "categories": {
+      "auth": {
+        "tkbfc03c4f6a": {
+          "userPoolId": "us-east-1_r5kIBw027",
+          "userPoolName": "amplify_backend_manager_d3jqjk8mxxg5vg",
+          "webClientId": "48j6l0kmi6tqq5li5uktdrnddt",
+          "nativeClientId": "48j6l0kmi6tqq5li5uktdrnddt"
+        }
+      },
+      "api": {
+        "tkbf": {}
+      }
+    }
+  }
+}

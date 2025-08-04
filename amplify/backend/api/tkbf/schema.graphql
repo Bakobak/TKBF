@@ -1,0 +1,117 @@
+# Schema GraphQL pour TKBF - Burkina Events (Version Corrigée)
+
+type Utilisateur @model @auth(rules: [{allow: owner}, {allow: groups, groups: ["ADMIN"]}]) {
+  id: ID!
+  nom: String!
+  prenom: String!
+  telephone: String! @index(name: "byTelephone")
+  email: String
+  role: Role!
+  statut: Statut!
+  ville: String!
+  quartier: String
+  dateCreation: AWSDateTime!
+  
+  # Relations
+  evenements: [Evenement] @hasMany(indexName: "byPromoteur", fields: ["id"])
+  achats: [Vente] @hasMany(indexName: "byAcheteur", fields: ["id"])
+}
+
+type Evenement @model @auth(rules: [
+  {allow: owner, ownerField: "promoteurId"}, 
+  {allow: groups, groups: ["ADMIN"]},
+  {allow: private, operations: [read], provider: userPools}
+]) {
+  id: ID!
+  promoteurId: ID! @index(name: "byPromoteur")
+  nom: String!
+  description: String
+  date: AWSDate!
+  heure: AWSTime!
+  lieu: String!
+  quartier: String!
+  ville: String!
+  prixBillet: Int!
+  capaciteMax: Int!
+  statut: StatutEvenement!
+  dateCreation: AWSDateTime!
+  categorie: CategorieEvenement!
+  image: String
+  sponsor: String
+  
+  # Relations
+  promoteur: Utilisateur @belongsTo(fields: ["promoteurId"])
+  ventes: [Vente] @hasMany(indexName: "byEvenement", fields: ["id"])
+}
+
+type Vente @model @auth(rules: [
+  {allow: owner, ownerField: "acheteurId"}, 
+  {allow: owner, ownerField: "promoteurId"},
+  {allow: groups, groups: ["ADMIN"]}
+]) {
+  id: ID!
+  evenementId: ID! @index(name: "byEvenement")
+  promoteurId: ID! @index(name: "byPromoteur")
+  acheteurId: ID! @index(name: "byAcheteur")
+  
+  acheteurNom: String!
+  acheteurTelephone: String!
+  acheteurEmail: String
+  
+  quantite: Int!
+  prixTotal: Int!
+  dateAchat: AWSDateTime!
+  methodePaiement: MethodePaiement!
+  numeroTransaction: String
+  statut: StatutVente!
+  qrCode: String
+  
+  # Relations
+  evenement: Evenement @belongsTo(fields: ["evenementId"])
+  promoteur: Utilisateur @belongsTo(fields: ["promoteurId"])
+  acheteur: Utilisateur @belongsTo(fields: ["acheteurId"])
+}
+
+# Enums
+enum Role {
+  ADMIN
+  PROMOTEUR
+  CLIENT
+}
+
+enum Statut {
+  ACTIF
+  INACTIF
+}
+
+enum StatutEvenement {
+  EN_ATTENTE
+  APPROUVE
+  REJETE
+}
+
+enum StatutVente {
+  EN_ATTENTE
+  CONFIRME
+  ECHEC
+  REMBOURSE
+}
+
+enum MethodePaiement {
+  ORANGE_MONEY
+  MOOV_MONEY
+  CORIS_MONEY
+  ESPECES
+  CARTE_BANCAIRE
+}
+
+enum CategorieEvenement {
+  FESTIVAL
+  CONCERT
+  THEATRE
+  DANSE
+  CULTURE
+  SPORT
+  CONFERENCE
+  AUTRE
+}

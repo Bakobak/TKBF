@@ -1,72 +1,55 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const getPromoteur = /* GraphQL */ `
-  query GetPromoteur($id: ID!) {
-    getPromoteur(id: $id) {
+export const getUtilisateur = /* GraphQL */ `
+  query GetUtilisateur($id: ID!) {
+    getUtilisateur(id: $id) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
 `;
-export const listPromoteurs = /* GraphQL */ `
-  query ListPromoteurs(
-    $filter: ModelPromoteurFilterInput
+export const listUtilisateurs = /* GraphQL */ `
+  query ListUtilisateurs(
+    $filter: ModelUtilisateurFilterInput
     $limit: Int
     $nextToken: String
   ) {
-    listPromoteurs(filter: $filter, limit: $limit, nextToken: $nextToken) {
+    listUtilisateurs(filter: $filter, limit: $limit, nextToken: $nextToken) {
       items {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
-        __typename
-      }
-      nextToken
-      __typename
-    }
-  }
-`;
-export const promoteursByEmail = /* GraphQL */ `
-  query PromoteursByEmail(
-    $email: String!
-    $sortDirection: ModelSortDirection
-    $filter: ModelPromoteurFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    promoteursByEmail(
-      email: $email
-      sortDirection: $sortDirection
-      filter: $filter
-      limit: $limit
-      nextToken: $nextToken
-    ) {
-      items {
-        id
-        nom
-        email
-        statut
-        dateCreation
-        entreprise
-        createdAt
-        updatedAt
+        owner
         __typename
       }
       nextToken
@@ -84,21 +67,29 @@ export const getEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -126,14 +117,160 @@ export const listEvenements = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const getVente = /* GraphQL */ `
+  query GetVente($id: ID!) {
+    getVente(id: $id) {
+      id
+      evenementId
+      promoteurId
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
+      quantite
+      prixTotal
+      dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
+      evenement {
+        id
+        promoteurId
+        nom
+        description
+        date
+        heure
+        lieu
+        quartier
+        ville
+        prixBillet
+        capaciteMax
+        statut
+        dateCreation
+        categorie
+        image
+        sponsor
+        createdAt
+        updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      createdAt
+      updatedAt
+      __typename
+    }
+  }
+`;
+export const listVentes = /* GraphQL */ `
+  query ListVentes(
+    $filter: ModelVenteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    listVentes(filter: $filter, limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        evenementId
+        promoteurId
+        acheteurId
+        acheteurNom
+        acheteurTelephone
+        acheteurEmail
+        quantite
+        prixTotal
+        dateAchat
+        methodePaiement
+        numeroTransaction
+        statut
+        qrCode
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const utilisateursByTelephone = /* GraphQL */ `
+  query UtilisateursByTelephone(
+    $telephone: String!
+    $sortDirection: ModelSortDirection
+    $filter: ModelUtilisateurFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    utilisateursByTelephone(
+      telephone: $telephone
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       nextToken
@@ -164,72 +301,15 @@ export const evenementsByPromoteurId = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
-        createdAt
-        updatedAt
-        __typename
-      }
-      nextToken
-      __typename
-    }
-  }
-`;
-export const getVente = /* GraphQL */ `
-  query GetVente($id: ID!) {
-    getVente(id: $id) {
-      id
-      evenementId
-      promoteurId
-      acheteur
-      email
-      quantite
-      prixTotal
-      dateAchat
-      evenement {
-        id
-        promoteurId
-        nom
-        description
-        date
-        heure
-        lieu
-        prixBillet
-        capaciteMax
-        statut
-        dateCreation
         image
-        categorie
-        createdAt
-        updatedAt
-        __typename
-      }
-      createdAt
-      updatedAt
-      __typename
-    }
-  }
-`;
-export const listVentes = /* GraphQL */ `
-  query ListVentes(
-    $filter: ModelVenteFilterInput
-    $limit: Int
-    $nextToken: String
-  ) {
-    listVentes(filter: $filter, limit: $limit, nextToken: $nextToken) {
-      items {
-        id
-        evenementId
-        promoteurId
-        acheteur
-        email
-        quantite
-        prixTotal
-        dateAchat
+        sponsor
         createdAt
         updatedAt
         __typename
@@ -258,11 +338,95 @@ export const ventesByEvenementId = /* GraphQL */ `
         id
         evenementId
         promoteurId
-        acheteur
-        email
+        acheteurId
+        acheteurNom
+        acheteurTelephone
+        acheteurEmail
         quantite
         prixTotal
         dateAchat
+        methodePaiement
+        numeroTransaction
+        statut
+        qrCode
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const ventesByPromoteurId = /* GraphQL */ `
+  query VentesByPromoteurId(
+    $promoteurId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelVenteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    ventesByPromoteurId(
+      promoteurId: $promoteurId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        evenementId
+        promoteurId
+        acheteurId
+        acheteurNom
+        acheteurTelephone
+        acheteurEmail
+        quantite
+        prixTotal
+        dateAchat
+        methodePaiement
+        numeroTransaction
+        statut
+        qrCode
+        createdAt
+        updatedAt
+        __typename
+      }
+      nextToken
+      __typename
+    }
+  }
+`;
+export const ventesByAcheteurId = /* GraphQL */ `
+  query VentesByAcheteurId(
+    $acheteurId: ID!
+    $sortDirection: ModelSortDirection
+    $filter: ModelVenteFilterInput
+    $limit: Int
+    $nextToken: String
+  ) {
+    ventesByAcheteurId(
+      acheteurId: $acheteurId
+      sortDirection: $sortDirection
+      filter: $filter
+      limit: $limit
+      nextToken: $nextToken
+    ) {
+      items {
+        id
+        evenementId
+        promoteurId
+        acheteurId
+        acheteurNom
+        acheteurTelephone
+        acheteurEmail
+        quantite
+        prixTotal
+        dateAchat
+        methodePaiement
+        numeroTransaction
+        statut
+        qrCode
         createdAt
         updatedAt
         __typename

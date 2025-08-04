@@ -1,68 +1,95 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const createPromoteur = /* GraphQL */ `
-  mutation CreatePromoteur(
-    $input: CreatePromoteurInput!
-    $condition: ModelPromoteurConditionInput
+export const createUtilisateur = /* GraphQL */ `
+  mutation CreateUtilisateur(
+    $input: CreateUtilisateurInput!
+    $condition: ModelUtilisateurConditionInput
   ) {
-    createPromoteur(input: $input, condition: $condition) {
+    createUtilisateur(input: $input, condition: $condition) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
 `;
-export const updatePromoteur = /* GraphQL */ `
-  mutation UpdatePromoteur(
-    $input: UpdatePromoteurInput!
-    $condition: ModelPromoteurConditionInput
+export const updateUtilisateur = /* GraphQL */ `
+  mutation UpdateUtilisateur(
+    $input: UpdateUtilisateurInput!
+    $condition: ModelUtilisateurConditionInput
   ) {
-    updatePromoteur(input: $input, condition: $condition) {
+    updateUtilisateur(input: $input, condition: $condition) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
 `;
-export const deletePromoteur = /* GraphQL */ `
-  mutation DeletePromoteur(
-    $input: DeletePromoteurInput!
-    $condition: ModelPromoteurConditionInput
+export const deleteUtilisateur = /* GraphQL */ `
+  mutation DeleteUtilisateur(
+    $input: DeleteUtilisateurInput!
+    $condition: ModelUtilisateurConditionInput
   ) {
-    deletePromoteur(input: $input, condition: $condition) {
+    deleteUtilisateur(input: $input, condition: $condition) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
@@ -80,21 +107,29 @@ export const createEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -120,21 +155,29 @@ export const updateEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -160,21 +203,29 @@ export const deleteEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -196,11 +247,17 @@ export const createVente = /* GraphQL */ `
       id
       evenementId
       promoteurId
-      acheteur
-      email
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
       quantite
       prixTotal
       dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
       evenement {
         id
         promoteurId
@@ -209,14 +266,49 @@ export const createVente = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       createdAt
@@ -234,11 +326,17 @@ export const updateVente = /* GraphQL */ `
       id
       evenementId
       promoteurId
-      acheteur
-      email
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
       quantite
       prixTotal
       dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
       evenement {
         id
         promoteurId
@@ -247,14 +345,49 @@ export const updateVente = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       createdAt
@@ -272,11 +405,17 @@ export const deleteVente = /* GraphQL */ `
       id
       evenementId
       promoteurId
-      acheteur
-      email
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
       quantite
       prixTotal
       dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
       evenement {
         id
         promoteurId
@@ -285,14 +424,49 @@ export const deleteVente = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       createdAt

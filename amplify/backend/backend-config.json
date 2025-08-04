@@ -1,0 +1,72 @@
+{
+  "api": {
+    "tkbf": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "UserPoolId"
+          ],
+          "category": "auth",
+          "resourceName": "tkbfc03c4f6a"
+        }
+      ],
+      "output": {
+        "authConfig": {
+          "additionalAuthenticationProviders": [],
+          "defaultAuthentication": {
+            "authenticationType": "AMAZON_COGNITO_USER_POOLS",
+            "userPoolConfig": {
+              "userPoolId": "authtkbfc03c4f6a"
+            }
+          }
+        }
+      },
+      "providerPlugin": "awscloudformation",
+      "service": "AppSync"
+    }
+  },
+  "auth": {
+    "tkbfc03c4f6a": {
+      "customAuth": true,
+      "dependsOn": [],
+      "providerPlugin": "awscloudformation",
+      "service": "Cognito",
+      "serviceType": "imported"
+    }
+  },
+  "hosting": {},
+  "parameters": {
+    "AMPLIFY_auth_tkbfc03c4f6a_nativeClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "tkbfc03c4f6a"
+        }
+      ]
+    },
+    "AMPLIFY_auth_tkbfc03c4f6a_userPoolId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "tkbfc03c4f6a"
+        }
+      ]
+    },
+    "AMPLIFY_auth_tkbfc03c4f6a_userPoolName": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "tkbfc03c4f6a"
+        }
+      ]
+    },
+    "AMPLIFY_auth_tkbfc03c4f6a_webClientId": {
+      "usedBy": [
+        {
+          "category": "auth",
+          "resourceName": "tkbfc03c4f6a"
+        }
+      ]
+    }
+  }
+}

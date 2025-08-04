@@ -1,68 +1,95 @@
 /* eslint-disable */
 // this is an auto generated file. This will be overwritten
 
-export const onCreatePromoteur = /* GraphQL */ `
-  subscription OnCreatePromoteur(
-    $filter: ModelSubscriptionPromoteurFilterInput
-    $id: String
+export const onCreateUtilisateur = /* GraphQL */ `
+  subscription OnCreateUtilisateur(
+    $filter: ModelSubscriptionUtilisateurFilterInput
+    $owner: String
   ) {
-    onCreatePromoteur(filter: $filter, id: $id) {
+    onCreateUtilisateur(filter: $filter, owner: $owner) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
 `;
-export const onUpdatePromoteur = /* GraphQL */ `
-  subscription OnUpdatePromoteur(
-    $filter: ModelSubscriptionPromoteurFilterInput
-    $id: String
+export const onUpdateUtilisateur = /* GraphQL */ `
+  subscription OnUpdateUtilisateur(
+    $filter: ModelSubscriptionUtilisateurFilterInput
+    $owner: String
   ) {
-    onUpdatePromoteur(filter: $filter, id: $id) {
+    onUpdateUtilisateur(filter: $filter, owner: $owner) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
 `;
-export const onDeletePromoteur = /* GraphQL */ `
-  subscription OnDeletePromoteur(
-    $filter: ModelSubscriptionPromoteurFilterInput
-    $id: String
+export const onDeleteUtilisateur = /* GraphQL */ `
+  subscription OnDeleteUtilisateur(
+    $filter: ModelSubscriptionUtilisateurFilterInput
+    $owner: String
   ) {
-    onDeletePromoteur(filter: $filter, id: $id) {
+    onDeleteUtilisateur(filter: $filter, owner: $owner) {
       id
       nom
+      prenom
+      telephone
       email
+      role
       statut
+      ville
+      quartier
       dateCreation
-      entreprise
       evenements {
+        nextToken
+        __typename
+      }
+      achats {
         nextToken
         __typename
       }
       createdAt
       updatedAt
+      owner
       __typename
     }
   }
@@ -80,21 +107,29 @@ export const onCreateEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -120,21 +155,29 @@ export const onUpdateEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -160,21 +203,29 @@ export const onDeleteEvenement = /* GraphQL */ `
       date
       heure
       lieu
+      quartier
+      ville
       prixBillet
       capaciteMax
       statut
       dateCreation
-      image
       categorie
+      image
+      sponsor
       promoteur {
         id
         nom
+        prenom
+        telephone
         email
+        role
         statut
+        ville
+        quartier
         dateCreation
-        entreprise
         createdAt
         updatedAt
+        owner
         __typename
       }
       ventes {
@@ -190,17 +241,28 @@ export const onDeleteEvenement = /* GraphQL */ `
 export const onCreateVente = /* GraphQL */ `
   subscription OnCreateVente(
     $filter: ModelSubscriptionVenteFilterInput
+    $acheteurId: String
     $promoteurId: String
   ) {
-    onCreateVente(filter: $filter, promoteurId: $promoteurId) {
+    onCreateVente(
+      filter: $filter
+      acheteurId: $acheteurId
+      promoteurId: $promoteurId
+    ) {
       id
       evenementId
       promoteurId
-      acheteur
-      email
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
       quantite
       prixTotal
       dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
       evenement {
         id
         promoteurId
@@ -209,14 +271,49 @@ export const onCreateVente = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       createdAt
@@ -228,17 +325,28 @@ export const onCreateVente = /* GraphQL */ `
 export const onUpdateVente = /* GraphQL */ `
   subscription OnUpdateVente(
     $filter: ModelSubscriptionVenteFilterInput
+    $acheteurId: String
     $promoteurId: String
   ) {
-    onUpdateVente(filter: $filter, promoteurId: $promoteurId) {
+    onUpdateVente(
+      filter: $filter
+      acheteurId: $acheteurId
+      promoteurId: $promoteurId
+    ) {
       id
       evenementId
       promoteurId
-      acheteur
-      email
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
       quantite
       prixTotal
       dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
       evenement {
         id
         promoteurId
@@ -247,14 +355,49 @@ export const onUpdateVente = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       createdAt
@@ -266,17 +409,28 @@ export const onUpdateVente = /* GraphQL */ `
 export const onDeleteVente = /* GraphQL */ `
   subscription OnDeleteVente(
     $filter: ModelSubscriptionVenteFilterInput
+    $acheteurId: String
     $promoteurId: String
   ) {
-    onDeleteVente(filter: $filter, promoteurId: $promoteurId) {
+    onDeleteVente(
+      filter: $filter
+      acheteurId: $acheteurId
+      promoteurId: $promoteurId
+    ) {
       id
       evenementId
       promoteurId
-      acheteur
-      email
+      acheteurId
+      acheteurNom
+      acheteurTelephone
+      acheteurEmail
       quantite
       prixTotal
       dateAchat
+      methodePaiement
+      numeroTransaction
+      statut
+      qrCode
       evenement {
         id
         promoteurId
@@ -285,14 +439,49 @@ export const onDeleteVente = /* GraphQL */ `
         date
         heure
         lieu
+        quartier
+        ville
         prixBillet
         capaciteMax
         statut
         dateCreation
-        image
         categorie
+        image
+        sponsor
         createdAt
         updatedAt
+        __typename
+      }
+      promoteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
+        __typename
+      }
+      acheteur {
+        id
+        nom
+        prenom
+        telephone
+        email
+        role
+        statut
+        ville
+        quartier
+        dateCreation
+        createdAt
+        updatedAt
+        owner
         __typename
       }
       createdAt
