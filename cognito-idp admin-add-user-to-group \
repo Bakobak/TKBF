@@ -1,0 +1,23 @@
+{
+    "User": {
+        "Username": "admin",
+        "Attributes": [
+            {
+                "Name": "email",
+                "Value": "admin@tkbf.com"
+            },
+            {
+                "Name": "name",
+                "Value": "Admin TKBF"
+            },
+            {
+                "Name": "sub",
+                "Value": "0448c428-30c1-70e6-d7e6-4ca0d6ee714e"
+            }
+        ],
+        "UserCreateDate": "2025-07-28T19:01:25.879000+00:00",
+        "UserLastModifiedDate": "2025-07-28T19:01:25.879000+00:00",
+        "Enabled": true,
+        "UserStatus": "FORCE_CHANGE_PASSWORD"
+    }
+}
