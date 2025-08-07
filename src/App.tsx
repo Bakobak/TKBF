@@ -1,10 +1,4 @@
-import { useState, useEffect } from 'react';
-import { Amplify } from 'aws-amplify';
-import { signUp, signIn, signOut, getCurrentUser, confirmSignUp } from 'aws-amplify/auth';
-import awsExports from './aws-exports';
-
-// Configurer Amplify
-Amplify.configure(awsExports);
+import { useState } from 'react';
 
 interface Utilisateur {
   id: string;
@@ -57,7 +51,7 @@ interface Vente {
 const evenementsParDefaut: Evenement[] = [
   {
     id: '1',
-    promoteurId: '2',
+    promoteurId: 'user_promoteur',
     nom: 'Festival des Arts de Ouaga',
     description: 'Le plus grand festival culturel du Burkina Faso',
     date: '2025-12-01',
@@ -74,7 +68,7 @@ const evenementsParDefaut: Evenement[] = [
   },
   {
     id: '2',
-    promoteurId: '2',
+    promoteurId: 'user_promoteur',
     nom: 'Concert Yeelen',
     description: 'Soirée musicale avec les meilleurs artistes burkinabè',
     date: '2025-08-15',
@@ -91,7 +85,7 @@ const evenementsParDefaut: Evenement[] = [
   },
   {
     id: '3',
-    promoteurId: '2',
+    promoteurId: 'user_promoteur',
     nom: 'Soirée Danse Traditionnelle',
     description: 'Découvrez les danses ancestrales du Burkina Faso',
     date: '2025-09-10',
@@ -124,6 +118,58 @@ const methodesPaiement = [
   { id: 'ESPECES', nom: 'Espèces', icon: '💵', couleur: '#34495e' }
 ];
 
+// Comptes de test prédéfinis
+const comptesTest = [
+  {
+    email: 'admin@tkbf.bf',
+    motDePasse: 'Admin123!',
+    utilisateur: {
+      id: 'user_admin',
+      nom: 'ADMIN',
+      prenom: 'Test',
+      telephone: '70000001',
+      email: 'admin@tkbf.bf',
+      role: 'ADMIN' as const,
+      statut: 'ACTIF' as const,
+      ville: 'Ouagadougou',
+      quartier: 'Centre-ville',
+      dateCreation: '2025-01-01'
+    }
+  },
+  {
+    email: 'promoteur@tkbf.bf',
+    motDePasse: 'Promo123!',
+    utilisateur: {
+      id: 'user_promoteur',
+      nom: 'PROMOTEUR',
+      prenom: 'Test',
+      telephone: '70000002',
+      email: 'promoteur@tkbf.bf',
+      role: 'PROMOTEUR' as const,
+      statut: 'ACTIF' as const,
+      ville: 'Ouagadougou',
+      quartier: 'Ouaga 2000',
+      dateCreation: '2025-01-01'
+    }
+  },
+  {
+    email: 'client@tkbf.bf',
+    motDePasse: 'Client123!',
+    utilisateur: {
+      id: 'user_client',
+      nom: 'CLIENT',
+      prenom: 'Test',
+      telephone: '70000003',
+      email: 'client@tkbf.bf',
+      role: 'CLIENT' as const,
+      statut: 'ACTIF' as const,
+      ville: 'Ouagadougou',
+      quartier: 'Zone du Bois',
+      dateCreation: '2025-01-01'
+    }
+  }
+];
+
 const genererQRCode = (data: string) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
 };
@@ -136,44 +182,12 @@ const PageAuthification = ({ onConnexion }: { onConnexion: (utilisateur: Utilisa
     motDePasse: '',
     confirmMotDePasse: '',
     nom: '',
-    prenom: '',
-    ville: '',
-    quartier: '',
-    role: 'CLIENT' as 'ADMIN' | 'PROMOTEUR' | 'CLIENT'
+    prenom: ''
   });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
-  const [etapeVerification, setEtapeVerification] = useState(false);
-  const [codeVerification, setCodeVerification] = useState('');
 
-  // Vérifier si l'utilisateur est déjà connecté
-  useEffect(() => {
-    checkCurrentUser();
-  }, []);
-
-  const checkCurrentUser = async () => {
-    try {
-      const user = await getCurrentUser();
-      // Si utilisateur connecté, le connecter automatiquement
-      const userData = {
-        id: user.userId,
-        nom: user.attributes?.family_name || 'Utilisateur',
-        prenom: user.attributes?.given_name || 'Test',
-        telephone: user.attributes?.phone_number?.replace('+226', '') || '',
-        email: user.attributes?.email || '',
-        role: (user.attributes?.['custom:role'] || 'CLIENT') as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
-        statut: 'ACTIF' as const,
-        ville: user.attributes?.['custom:ville'] || 'Ouagadougou',
-        quartier: user.attributes?.['custom:quartier'] || '',
-        dateCreation: new Date().toLocaleDateString('fr-FR')
-      };
-      onConnexion(userData);
-    } catch (error) {
-      // Pas d'utilisateur connecté, continuer normalement
-    }
-  };
-
-  const gererInscription = async () => {
+  const gererInscription = () => {
     if (!formData.telephone || !formData.email || !formData.motDePasse || !formData.nom || !formData.prenom) {
       setErreur('Veuillez remplir tous les champs obligatoires');
       return;
@@ -185,63 +199,34 @@ const PageAuthification = ({ onConnexion }: { onConnexion: (utilisateur: Utilisa
     }
 
     if (formData.motDePasse.length < 8) {
-      setErreur('Le mot de passe doit contenir au moins 8 caractères avec majuscules, minuscules, chiffres et symboles');
+      setErreur('Le mot de passe doit contenir au moins 8 caractères');
       return;
     }
 
     setChargement(true);
     setErreur('');
 
-    try {
-      const { nextStep } = await signUp({
-        username: formData.email,
-        password: formData.motDePasse,
-        options: {
-          userAttributes: {
-            email: formData.email,
-            phone_number: `+226${formData.telephone}`,
-            given_name: formData.prenom,
-            family_name: formData.nom,
-            'custom:role': formData.role,
-            'custom:ville': formData.ville,
-            'custom:quartier': formData.quartier || ''
-          }
-        }
-      });
+    setTimeout(() => {
+      const nouvelUtilisateur: Utilisateur = {
+        id: 'user_' + Date.now(),
+        nom: formData.nom,
+        prenom: formData.prenom,
+        telephone: formData.telephone,
+        email: formData.email,
+        role: 'CLIENT',
+        statut: 'ACTIF',
+        ville: 'Ouagadougou',
+        quartier: '',
+        dateCreation: new Date().toLocaleDateString('fr-FR')
+      };
 
-      if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
-        setEtapeVerification(true);
-      }
-    } catch (error: any) {
-      setErreur(error.message || 'Erreur lors de l\'inscription');
-    } finally {
+      alert('✅ Inscription réussie ! Vous êtes maintenant connecté.');
+      onConnexion(nouvelUtilisateur);
       setChargement(false);
-    }
+    }, 1500);
   };
 
-  const confirmerInscription = async () => {
-    if (!codeVerification) {
-      setErreur('Veuillez entrer le code de vérification');
-      return;
-    }
-
-    setChargement(true);
-    try {
-      await confirmSignUp({
-        username: formData.email,
-        confirmationCode: codeVerification
-      });
-
-      // Connexion automatique après vérification
-      await gererConnexion();
-    } catch (error: any) {
-      setErreur(error.message || 'Code de vérification incorrect');
-    } finally {
-      setChargement(false);
-    }
-  };
-
-  const gererConnexion = async () => {
+  const gererConnexion = () => {
     if (!formData.email || !formData.motDePasse) {
       setErreur('Veuillez remplir votre email et mot de passe');
       return;
@@ -250,133 +235,37 @@ const PageAuthification = ({ onConnexion }: { onConnexion: (utilisateur: Utilisa
     setChargement(true);
     setErreur('');
 
-    try {
-      const { nextStep } = await signIn({
-        username: formData.email,
-        password: formData.motDePasse
-      });
+    setTimeout(() => {
+      const compteTest = comptesTest.find(compte => 
+        compte.email === formData.email && compte.motDePasse === formData.motDePasse
+      );
 
-      if (nextStep.signInStep === 'DONE') {
-        const user = await getCurrentUser();
-        const userData = {
-          id: user.userId,
-          nom: user.attributes?.family_name || 'Utilisateur',
-          prenom: user.attributes?.given_name || 'Test',
-          telephone: user.attributes?.phone_number?.replace('+226', '') || '',
-          email: user.attributes?.email || '',
-          role: (user.attributes?.['custom:role'] || 'CLIENT') as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
-          statut: 'ACTIF' as const,
-          ville: user.attributes?.['custom:ville'] || 'Ouagadougou',
-          quartier: user.attributes?.['custom:quartier'] || '',
-          dateCreation: new Date().toLocaleDateString('fr-FR')
-        };
-        onConnexion(userData);
+      if (compteTest) {
+        onConnexion(compteTest.utilisateur);
+      } else {
+        setErreur('Email ou mot de passe incorrect');
       }
-    } catch (error: any) {
-      setErreur(error.message || 'Erreur de connexion');
-    } finally {
       setChargement(false);
-    }
+    }, 1000);
   };
 
-  const connexionRapide = async (email: string, password: string) => {
+  const connexionRapide = (email: string, password: string) => {
     setFormData(prev => ({ ...prev, email, motDePasse: password }));
     setChargement(true);
-    try {
-      await signIn({ username: email, password });
-      const user = await getCurrentUser();
-      const userData = {
-        id: user.userId,
-        nom: user.attributes?.family_name || 'Test',
-        prenom: user.attributes?.given_name || 'User',
-        telephone: user.attributes?.phone_number?.replace('+226', '') || '70123456',
-        email: user.attributes?.email || email,
-        role: (user.attributes?.['custom:role'] || 'CLIENT') as 'ADMIN' | 'PROMOTEUR' | 'CLIENT',
-        statut: 'ACTIF' as const,
-        ville: user.attributes?.['custom:ville'] || 'Ouagadougou',
-        quartier: user.attributes?.['custom:quartier'] || '',
-        dateCreation: new Date().toLocaleDateString('fr-FR')
-      };
-      onConnexion(userData);
-    } catch (error) {
-      setErreur('Compte de test non trouvé. Créez un compte ou utilisez l\'inscription.');
-    } finally {
+    
+    setTimeout(() => {
+      const compteTest = comptesTest.find(compte => 
+        compte.email === email && compte.motDePasse === password
+      );
+
+      if (compteTest) {
+        onConnexion(compteTest.utilisateur);
+      } else {
+        setErreur('Compte de test non trouvé');
+      }
       setChargement(false);
-    }
+    }, 800);
   };
-
-  if (etapeVerification) {
-    return (
-      <div style={{
-        background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px'
-      }}>
-        <div style={{
-          background: 'white',
-          padding: '40px',
-          borderRadius: '20px',
-          maxWidth: '500px',
-          width: '100%',
-          textAlign: 'center',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          border: '3px solid #27ae60'
-        }}>
-          <div style={{ marginBottom: '20px' }}>
-            <span style={{ fontSize: '3em' }}>📧</span>
-            <h1 style={{ margin: '10px 0 5px 0', fontSize: '2em', color: '#e67e22' }}>Vérification</h1>
-            <p style={{ margin: '0 0 20px 0', color: '#7f8c8d', fontSize: '16px' }}>
-              Un code de vérification a été envoyé à votre email
-            </p>
-          </div>
-
-          <input
-            type="text"
-            placeholder="Code de vérification"
-            value={codeVerification}
-            onChange={(e) => setCodeVerification(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '15px',
-              borderRadius: '10px',
-              border: '2px solid #bdc3c7',
-              fontSize: '16px',
-              marginBottom: '20px',
-              boxSizing: 'border-box',
-              textAlign: 'center'
-            }}
-          />
-
-          {erreur && (
-            <p style={{ color: '#e74c3c', margin: '0 0 20px 0', fontWeight: 'bold' }}>
-              ❌ {erreur}
-            </p>
-          )}
-
-          <button
-            onClick={confirmerInscription}
-            disabled={chargement || !codeVerification}
-            style={{
-              width: '100%',
-              background: chargement ? '#95a5a6' : 'linear-gradient(45deg, #27ae60, #2ecc71)',
-              color: 'white',
-              padding: '15px',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: chargement ? 'wait' : 'pointer',
-              fontSize: '18px',
-              fontWeight: 'bold'
-            }}
-          >
-            {chargement ? '🔄 Vérification...' : '✅ Confirmer'}
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div style={{
@@ -488,55 +377,6 @@ const PageAuthification = ({ onConnexion }: { onConnexion: (utilisateur: Utilisa
                   boxSizing: 'border-box'
                 }}
               />
-
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                <input
-                  type="text"
-                  placeholder="Ville"
-                  value={formData.ville}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ville: e.target.value }))}
-                  style={{
-                    flex: 1,
-                    padding: '15px',
-                    borderRadius: '10px',
-                    border: '2px solid #bdc3c7',
-                    fontSize: '16px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <input
-                  type="text"
-                  placeholder="Quartier (optionnel)"
-                  value={formData.quartier}
-                  onChange={(e) => setFormData(prev => ({ ...prev, quartier: e.target.value }))}
-                  style={{
-                    flex: 1,
-                    padding: '15px',
-                    borderRadius: '10px',
-                    border: '2px solid #bdc3c7',
-                    fontSize: '16px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </div>
-
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as 'ADMIN' | 'PROMOTEUR' | 'CLIENT' }))}
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  borderRadius: '10px',
-                  border: '2px solid #bdc3c7',
-                  fontSize: '16px',
-                  marginBottom: '15px',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <option value="CLIENT">👤 Client (Acheter des billets)</option>
-                <option value="PROMOTEUR">🎪 Promoteur d'événements</option>
-                <option value="ADMIN">🛠️ Administrateur</option>
-              </select>
             </>
           )}
 
@@ -739,7 +579,6 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
     : evenementsPublics.filter(e => e.categorie === categorieSelectionnee);
   
   const evenementsEnAttente = evenements.filter(e => e.statut === 'EN_ATTENTE');
-  const mesEvenements = evenements.filter(e => e.promoteurId === utilisateur.id);
   const mesVentes = ventes.filter(v => v.acheteur.includes(utilisateur.nom));
   const ventesPromotion = ventes.filter(v => v.promoteurId === utilisateur.id);
 
@@ -748,7 +587,6 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
   const confirmerAchat = () => {
     if (!evenementSelectionne || !numeroPaiement) return;
 
-    const methodePaiementInfo = methodesPaiement.find(m => m.id === methodePaiement);
     const montantTotal = evenementSelectionne.prixBillet * quantite;
     const numeroTransaction = 'TXN' + Date.now();
 
@@ -779,6 +617,8 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
     setVentes(prev => [...prev, nouvelleVente]);
     alert(`✅ Achat confirmé !\n🎫 ${quantite} billet(s)\n💰 ${montantTotal.toLocaleString()} FCFA\n📱 QR Code disponible dans "Mes Billets"`);
     setEvenementSelectionne(null);
+    setNumeroPaiement('');
+    setQuantite(1);
   };
 
   const approuverEvenement = (idEvenement: string) => {
@@ -825,16 +665,6 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
     alert('✅ Événement créé ! Il sera visible après validation par l\'administrateur.');
   };
 
-  const handleDeconnexion = async () => {
-    try {
-      await signOut();
-      onDeconnexion();
-    } catch (error) {
-      console.error('Erreur de déconnexion:', error);
-      onDeconnexion(); // Déconnexion forcée en cas d'erreur
-    }
-  };
-
   return (
     <div style={{ background: '#ecf0f1', minHeight: '100vh' }}>
       <header style={{
@@ -876,7 +706,7 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
               <p style={{ margin: 0, opacity: 0.8, fontSize: '12px' }}>📱 {utilisateur.telephone}</p>
             </div>
             <button 
-              onClick={handleDeconnexion} 
+              onClick={onDeconnexion} 
               style={{
                 background: 'rgba(255,255,255,0.2)',
                 color: 'white',
@@ -1135,71 +965,6 @@ const Dashboard = ({ utilisateur, onDeconnexion }: { utilisateur: Utilisateur, o
               })}
             </div>
           </>
-        )}
-
-        {/* Autres onglets - validation, création, ventes, billets - votre code existant */}
-        {ongletActif === 'validation' && estAdmin && (
-          <div style={{ background: 'white', padding: '20px', borderRadius: '15px', border: `2px solid ${couleurRole}` }}>
-            <h3 style={{ margin: '0 0 20px 0', color: couleurRole }}>
-              🛠️ Validation Événements ({evenementsEnAttente.length} en attente)
-            </h3>
-            
-            {evenementsEnAttente.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                <p style={{ fontSize: '18px' }}>✅ Aucun événement en attente</p>
-              </div>
-            ) : (
-              evenementsEnAttente.map(event => (
-                <div key={event.id} style={{ 
-                  background: '#fff3cd', 
-                  padding: '20px', 
-                  borderRadius: '12px', 
-                  marginBottom: '15px',
-                  border: '2px solid #f39c12'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', flexWrap: 'wrap', gap: '15px' }}>
-                    <div style={{ flex: 1, minWidth: '300px' }}>
-                      <h4 style={{ margin: '0 0 10px 0' }}>{event.nom}</h4>
-                      <p style={{ margin: '3px 0', fontSize: '14px' }}>📅 {event.date} à {event.heure}</p>
-                      <p style={{ margin: '3px 0', fontSize: '14px' }}>📍 {event.lieu}, {event.ville}</p>
-                      <p style={{ margin: '3px 0', fontSize: '14px' }}>💰 {event.prixBillet.toLocaleString()} FCFA</p>
-                      <p style={{ margin: '3px 0', fontSize: '14px' }}>👥 {event.capaciteMax} places</p>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <button
-                        onClick={() => approuverEvenement(event.id)}
-                        style={{
-                          background: '#27ae60',
-                          color: 'white',
-                          padding: '10px 20px',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        ✅ Approuver
-                      </button>
-                      <button
-                        onClick={() => rejeterEvenement(event.id)}
-                        style={{
-                          background: '#e74c3c',
-                          color: 'white',
-                          padding: '10px 20px',
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        ❌ Rejeter
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         )}
 
         {/* Modal de réservation */}

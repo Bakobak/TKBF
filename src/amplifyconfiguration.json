@@ -1,5 +1,12 @@
 {
   "aws_project_region": "us-east-1",
+  "aws_cloud_logic_custom": [
+    {
+      "name": "adminAPI",
+      "endpoint": "https://fy3hi3w4f0.execute-api.us-east-1.amazonaws.com/dev",
+      "region": "us-east-1"
+    }
+  ],
   "aws_cognito_region": "us-east-1",
   "aws_user_pools_id": "us-east-1_r5kIBw027",
   "aws_user_pools_web_client_id": "48j6l0kmi6tqq5li5uktdrnddt",
@@ -19,9 +26,6 @@
     ]
   },
   "aws_cognito_verification_mechanisms": [],
-  "aws_appsync_graphqlEndpoint": "https://3e66o7iv6jflrnrtrpm26nxcwq.appsync-api.us-east-1.amazonaws.com/graphql",
-  "aws_appsync_region": "us-east-1",
-  "aws_appsync_authenticationType": "AMAZON_COGNITO_USER_POOLS",
   "aws_cognito_login_mechanisms": [
     "EMAIL"
   ]

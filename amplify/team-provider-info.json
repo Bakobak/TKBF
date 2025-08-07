@@ -20,8 +20,20 @@
           "nativeClientId": "48j6l0kmi6tqq5li5uktdrnddt"
         }
       },
+      "function": {
+        "adminUserManagement": {
+          "deploymentBucketName": "amplify-tkbf-dev-f0fde-deployment",
+          "s3Key": "amplify-builds/adminUserManagement-6b4b597146304b69526e-build.zip"
+        }
+      },
       "api": {
-        "tkbf": {}
+        "adminAPI": {}
+      },
+      "hosting": {
+        "amplifyhosting": {
+          "appId": "d3otufssnj0dmt",
+          "type": "manual"
+        }
       }
     }
   }

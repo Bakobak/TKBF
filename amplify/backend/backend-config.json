@@ -1,28 +1,18 @@
 {
   "api": {
-    "tkbf": {
+    "adminAPI": {
       "dependsOn": [
         {
           "attributes": [
-            "UserPoolId"
+            "Name",
+            "Arn"
           ],
-          "category": "auth",
-          "resourceName": "tkbfc03c4f6a"
+          "category": "function",
+          "resourceName": "adminUserManagement"
         }
       ],
-      "output": {
-        "authConfig": {
-          "additionalAuthenticationProviders": [],
-          "defaultAuthentication": {
-            "authenticationType": "AMAZON_COGNITO_USER_POOLS",
-            "userPoolConfig": {
-              "userPoolId": "authtkbfc03c4f6a"
-            }
-          }
-        }
-      },
       "providerPlugin": "awscloudformation",
-      "service": "AppSync"
+      "service": "API Gateway"
     }
   },
   "auth": {
@@ -34,7 +24,20 @@
       "serviceType": "imported"
     }
   },
-  "hosting": {},
+  "function": {
+    "adminUserManagement": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "hosting": {
+    "amplifyhosting": {
+      "providerPlugin": "awscloudformation",
+      "service": "amplifyhosting",
+      "type": "manual"
+    }
+  },
   "parameters": {
     "AMPLIFY_auth_tkbfc03c4f6a_nativeClientId": {
       "usedBy": [
@@ -65,6 +68,38 @@
         {
           "category": "auth",
           "resourceName": "tkbfc03c4f6a"
+        }
+      ]
+    },
+    "AMPLIFY_function_adminUserManagement_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "adminUserManagement"
+        }
+      ]
+    },
+    "AMPLIFY_function_adminUserManagement_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "adminUserManagement"
+        }
+      ]
+    },
+    "AMPLIFY_hosting_amplifyhosting_appId": {
+      "usedBy": [
+        {
+          "category": "hosting",
+          "resourceName": "amplifyhosting"
+        }
+      ]
+    },
+    "AMPLIFY_hosting_amplifyhosting_type": {
+      "usedBy": [
+        {
+          "category": "hosting",
+          "resourceName": "amplifyhosting"
         }
       ]
     }
